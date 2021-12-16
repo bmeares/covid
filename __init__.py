@@ -10,10 +10,10 @@ from __future__ import annotations
 from typing import Union, Optional, Any, List, Dict
 import meerschaum as mrsm
 
-__version__: str = '0.0.2'
-implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX']
+__version__: str = '0.0.3'
+implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX', 'US',]
 required: List[str] = (
-    ['pandas', 'duckdb', 'plugin:nytcovid']
+    ['pandas', 'duckdb',]
     + [f'plugin:{state}-covid' for state in implemented_states]
 )
 dtypes: Dict[str, Any] = {
