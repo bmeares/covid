@@ -7,25 +7,22 @@ Fetch county-level COVID-19 data for all 50 US states.
 """
 
 from __future__ import annotations
+from typing import Union, Optional, Any, List, Dict
 import meerschaum as mrsm
-__version__ = '0.0.1'
 
-states = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-]
-implemented_states = ['CA', 'CO', 'GA', 'TX']
-
-required = (
+__version__: str = '0.0.2'
+implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX']
+required: List[str] = (
     ['pandas', 'duckdb', 'plugin:nytcovid']
     + [f'plugin:{state}-covid' for state in implemented_states]
 )
+dtypes: Dict[str, Any] = {
+    'date': 'datetime64[ms]',
+    'fips': str,
+    'cases': int,
+}
 
-
-def register(pipe: mrsm.Pipe, **kw):
+def register(pipe: mrsm.Pipe, **kw) -> Dict[str, Any]:
     from meerschaum.utils.warnings import warn
     from meerschaum.utils.prompt import prompt, yes_no
     while True:
@@ -54,12 +51,16 @@ def register(pipe: mrsm.Pipe, **kw):
 def fetch(
         pipe: mrsm.Pipe,
         debug: bool = False,
+        workers: Optional[int] = None,
         **kw
-    ):
+    ) -> Union['pd.DataFrame', None]:
     import duckdb
     import pandas as pd
     from .fips import states_df
-    from meerschaum.utils.warnings import warn
+    from meerschaum.utils.pool import get_pool
+    from functools import partial
+    from meerschaum.actions import actions
+    pool = get_pool(workers=workers)
     fips_list = pipe.parameters['covid']['fips']
     states_fips = {}
     for f in fips_list:
@@ -88,23 +89,31 @@ def fetch(
         ) for state, fips in states_fips.items()
     }
 
-    dtypes = {
-        'date': 'datetime64[ms]',
-        'fips': str,
-        'cases': int,
-    }
-    dfs = []
-    for state, pipe in states_pipes.items():
-        ### This is a workaround because the other plugins have interactive `register()` functions.
-        if pipe.get_id(debug=debug) is None:
-            pipe.instance_connector.register_pipe(pipe, debug=debug)
-        try:
-            dfs.append(
-                pd.DataFrame(pipe.fetch(debug=debug, **kw))[dtypes].astype(dtypes)
-            )
-        except Exception as e:
-            warn(f"Error fetching for state '{state}':\n{e}")
-    return pd.concat(dfs)
+    ### This is a workaround because the other plugins have interactive `register()` functions.
+    for state, p in states_pipes.items():
+        if p.get_id(debug=debug) is None:
+            p.instance_connector.register_pipe(p, debug=debug)
+
+    _kw = kw.copy()
+    _kw.update(dict(
+        action = ['pipes'],
+        mrsm_instance = 'sql:local',
+        connector_keys = [p.connector_keys for s, p in states_pipes.items()],    
+        metric_keys = [p.metric_key for s, p in states_pipes.items()],    
+        location_keys = [p.location_key for s, p in states_pipes.items()],    
+        debug = debug,
+
+    ))
+    actions['sync'](**_kw)
+
+    dfs = [
+        df[dtypes.keys()].astype(dtypes) for df in pool.map(
+            partial(_get_df, **kw), [pipe for state, pipe in states_pipes.items()]
+        ) if df is not None
+    ]
+
+    return pd.concat(dfs) if dfs else None
 
 
-def _get_df(pipe)
+def _get_df(pipe: mrsm.Pipe, debug: bool = False, **kw) -> Union['pd.DataFrame', None]:
+    return pipe.get_data(debug=debug, **kw)
