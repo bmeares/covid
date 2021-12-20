@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Union, Optional, Any, List, Dict
 import meerschaum as mrsm
 
-__version__: str = '0.0.3'
+__version__: str = '0.1.1'
 implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX', 'US',]
 required: List[str] = (
     ['pandas', 'duckdb',]
@@ -57,9 +57,12 @@ def fetch(
     import duckdb
     import pandas as pd
     from .fips import states_df
-    from meerschaum.utils.pool import get_pool
     from functools import partial
     from meerschaum.actions import actions
+    from meerschaum.utils.pool import get_pool
+    from meerschaum.utils.packages import run_python_package
+    import subprocess
+    import sys
     pool = get_pool(workers=workers)
     fips_list = pipe.parameters['covid']['fips']
     states_fips = {}
@@ -94,24 +97,32 @@ def fetch(
         if p.get_id(debug=debug) is None:
             p.instance_connector.register_pipe(p, debug=debug)
 
-    _kw = kw.copy()
-    _kw.update(dict(
-        action = ['pipes'],
-        mrsm_instance = 'sql:local',
-        connector_keys = [p.connector_keys for s, p in states_pipes.items()],    
-        metric_keys = [p.metric_key for s, p in states_pipes.items()],    
-        location_keys = [p.location_key for s, p in states_pipes.items()],    
-        debug = debug,
-
-    ))
-    actions['sync'](**_kw)
+    cmds = (
+        [sys.executable, '-m', 'meerschaum']
+        + ['sync', 'pipes', ]
+        + ['-c', ] + [p.connector_keys for s, p in states_pipes.items()]
+        + ['-m', ] + [p.metric_key for s, p in states_pipes.items()]
+        + ['-l', ] + [p.location_key for s, p in states_pipes.items()]
+        + (['--debug'] if debug else [])
+        + ['-i', 'sql:local']
+        + (['-w', str(workers)] if workers is not None else [])
+    )
+    #  success = run_python_package('meerschaum', cmds, debug=debug)
+    with subprocess.Popen(cmds) as proc:
+        proc.wait()
+        success = proc.wait()
+    if success != 0:
+        raise Exception("Failed to sync states' pipes.")
 
     dfs = [
         df[dtypes.keys()].astype(dtypes) for df in pool.map(
-            partial(_get_df, **kw), [pipe for state, pipe in states_pipes.items()]
+            partial(_get_df, **kw), [p for s, p in states_pipes.items()]
         ) if df is not None
+    ] if pool is not None else [
+        df[dtypes.keys()].astype(dtypes) for df in [
+            _get_df(pipe, debug=debug) for s, p in states_pipes.items()
+        ] if df is not None
     ]
-
     return pd.concat(dfs) if dfs else None
 
 
