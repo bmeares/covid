@@ -8,9 +8,11 @@ Fetch county-level COVID-19 data for all 50 US states.
 
 from __future__ import annotations
 from typing import Union, Optional, Any, List, Dict
+from meerschaum.config._paths import SQLITE_RESOURCES_PATH
+CACHE_DB_PATH = SQLITE_RESOURCES_PATH / 'covid.db'
 import meerschaum as mrsm
 
-__version__: str = '0.1.1'
+__version__: str = '0.1.2'
 implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX', 'US',]
 required: List[str] = (
     ['pandas', 'duckdb',]
@@ -63,6 +65,7 @@ def fetch(
     from meerschaum.utils.packages import run_python_package
     import subprocess
     import sys
+    import json
     pool = get_pool(workers=workers)
     fips_list = pipe.parameters['covid']['fips']
     states_fips = {}
@@ -75,10 +78,13 @@ def fetch(
             states_fips[state] = []
         states_fips[state].append(f)
 
+    ### Store the states' pipes in a new SQLite database.
+    conn_attrs = {'flavor': 'sqlite', 'database': str(CACHE_DB_PATH)}
+
     states_pipes = {
         state: mrsm.Pipe(
             f'plugin:{state}-covid', 'cases', state,
-            instance = 'sql:local',
+            instance = mrsm.get_connector('sql', '_covid', **conn_attrs),
             parameters = {
                 'columns': {
                     'datetime': 'date',
@@ -97,6 +103,7 @@ def fetch(
         if p.get_id(debug=debug) is None:
             p.instance_connector.register_pipe(p, debug=debug)
 
+    ### Open a subprocesses so we can let the synchronization engine handle concurrency.
     cmds = (
         [sys.executable, '-m', 'meerschaum']
         + ['sync', 'pipes', ]
@@ -104,11 +111,22 @@ def fetch(
         + ['-m', ] + [p.metric_key for s, p in states_pipes.items()]
         + ['-l', ] + [p.location_key for s, p in states_pipes.items()]
         + (['--debug'] if debug else [])
-        + ['-i', 'sql:local']
+        + ['-i', 'sql:_covid']
         + (['-w', str(workers)] if workers is not None else [])
     )
-    #  success = run_python_package('meerschaum', cmds, debug=debug)
-    with subprocess.Popen(cmds) as proc:
+    ### Patch our temporary database config onto the regular config so it appears "registered".
+    mrsm_env = {
+        'MRSM_PATCH': json.dumps({
+            'meerschaum': {
+                'connectors': {
+                    'sql': {
+                        '_covid': conn_attrs
+                    },
+                },
+            },
+        })
+    }
+    with subprocess.Popen(cmds, env=mrsm_env) as proc:
         proc.wait()
         success = proc.wait()
     if success != 0:
