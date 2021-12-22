@@ -77,7 +77,7 @@ In this example, the data are fetched and stored in the `sql:local` instance, a 
 
 #### Relational Database
 
-The instructions above use the built-in SQLite database (`sql:local`) stored at `~/.config/meerschaum/sqlite/mrsm_local.db` (Windows: `%APPDATA%\Meerschaum\sqlite\mrsm_local.db`), but you can use any database you want.
+The instructions above use the built-in SQLite database (`sql:local`) stored at `~/.config/meerschaum/sqlite/mrsm_local.db` (Windows: `%APPDATA%\Meerschaum\sqlite\mrsm_local.db`), but you can use any database you want (the states' data are cached in `~/.config/meerschaum/sqlite/covid.db`).
 
 If you have Docker installed, run `mrsm stack up -d db` to bring up `sql:main`, a TimescaleDB (PostgreSQL) instance.
 
