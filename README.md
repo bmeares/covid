@@ -48,6 +48,26 @@ mrsm register pipe -c plugin:covid -m cases -i sql:local
 
 In this example, the data are fetched and stored in the `sql:local` instance, a built-in SQLite database.
 
+### Fetching Data
+
+Run the `sync` command to fetch new data. The first time syncing may take a minute or two.
+
+```bash
+mrsm sync pipes -i sql:local
+```
+
+To sync continuously, add `--loop` and `--min-seconds` (e.g. 3600 for 1 hour):
+
+```bash
+mrsm sync pipes -i sql:local --loop --min-seconds 3600
+```
+
+You can sync with `systemd`, `crontab`, etc., or instead add `-d` to run the command as a background job:
+
+```bash
+mrsm sync pipes -i sql:local --local --min-seconds 3600 -d
+```
+
 ### Accessing Your Data
 
 #### Pandas DataFrame
