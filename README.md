@@ -105,6 +105,6 @@ You can also add your own database as an instance with `mrsm bootstrap connector
 
 ## Contributing
 
-The best way to contribute is to [write a Meerschaum plugin](https://meerschaum.io/reference/plugins/writing-plugins/) for your state. The main requirement is that your `fetch()` function must return a DataFrame (or dictionary of lists) with the columns date (datetime), fips (str), and cases (int). Check out the [California Meerschaum plugin](https://meerschaum.io/reference/plugins/writing-plugins/) for reference (e.g. how to filter by FIPS).
+The best way to contribute is to [write a Meerschaum plugin](https://meerschaum.io/reference/plugins/writing-plugins/) for your state. The main requirement is that your `fetch()` function must return a DataFrame (or dictionary of lists) with the columns date (datetime), fips (str), and cases (int). Check out the [California Meerschaum plugin](https://github.com/bmeares/CA-covid) for reference (e.g. how to filter by FIPS).
 
-After testing and publising a plugin for your state, please open a PR on this repository to add your plugin to the `implemented_states` list. Please use the format `<STATE ABBREVIATION>-covid` when naming your plugin (e.g. `CO-covid` for Colorado).
+After testing and publishing a plugin for your state, please open a PR on this repository to add your plugin to the `implemented_states` list. Please use the format `<STATE ABBREVIATION>-covid` when naming your plugin (e.g. `CO-covid` for Colorado).
