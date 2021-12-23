@@ -138,10 +138,10 @@ def fetch(
         ) if df is not None
     ] if pool is not None else [
         df[dtypes.keys()].astype(dtypes) for df in [
-            _get_df(pipe, debug=debug) for s, p in states_pipes.items()
+            _get_df(p, debug=debug) for s, p in states_pipes.items()
         ] if df is not None
     ]
-    return pd.concat(dfs) if dfs else None
+    return pd.concat(dfs)[dtypes.keys()].astype(dtypes) if dfs else None
 
 
 def _get_df(pipe: mrsm.Pipe, debug: bool = False, **kw) -> Union['pd.DataFrame', None]:
