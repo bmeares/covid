@@ -12,7 +12,7 @@ from meerschaum.config._paths import SQLITE_RESOURCES_PATH
 CACHE_DB_PATH = SQLITE_RESOURCES_PATH / 'covid.db'
 import meerschaum as mrsm
 
-__version__: str = '0.1.2'
+__version__: str = '0.1.3'
 implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX', 'US',]
 required: List[str] = (
     ['pandas', 'duckdb',]
