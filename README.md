@@ -4,7 +4,7 @@ This Meerschaum plugin scrapes county-level COVID-19 data for US states. For imp
 
 ## Motivation
 
-The [New York Times tracker](https://github.com/nytimes/covid-19-data) is the most complete source for county-level US COVID-19 data, but its distribution via CSV is somewhat cumbersome, and many smaller counties are missing. This plugin makes rountinely ingesting COVID-19 data into your projects a straightforward process.
+The [New York Times tracker](https://github.com/nytimes/covid-19-data) is the most complete source for county-level US COVID-19 data, but its distribution via CSV is somewhat cumbersome, and many smaller counties are missing. This plugin makes routinely ingesting COVID-19 data into your projects a straightforward process.
 
 ## Data Sources
 
