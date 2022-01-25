@@ -12,7 +12,7 @@ from meerschaum.config._paths import SQLITE_RESOURCES_PATH
 CACHE_DB_PATH = SQLITE_RESOURCES_PATH / 'covid.db'
 import meerschaum as mrsm
 
-__version__: str = '0.1.3'
+__version__: str = '0.2.0'
 implemented_states: List[str] = ['CA', 'CO', 'GA', 'TX', 'US',]
 required: List[str] = (
     ['pandas', 'duckdb',]
@@ -145,4 +145,4 @@ def fetch(
 
 
 def _get_df(pipe: mrsm.Pipe, debug: bool = False, **kw) -> Union['pd.DataFrame', None]:
-    return pipe.get_data(debug=debug, **kw)
+    return pipe.get_data(debug=debug)
